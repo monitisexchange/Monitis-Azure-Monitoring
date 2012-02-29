@@ -18,9 +18,7 @@ namespace Monitis
             authToken
         }
 
-        private OutputType outputType = OutputType.JSON;
-
-        #region Constructors
+        #region Authentication constructors and methods
 
         /// <summary>
         /// Constructor wihtout params. Don't forget to call Authenticate to fill apikey, secretkey and authToken
@@ -69,16 +67,20 @@ namespace Monitis
             }
         }
 
-        #endregion
-
-        #region Helper methods
-
         public void Authenticate(string userName, string password)
         {
             apiKey = GetApiKey(userName, password, outputType);
             secretKey = GetSecretKey(outputType);
             authToken = GetAuthToken(apiKey, secretKey, outputType);
         }
+
+        public void Authenticate(string userName, string password, OutputType output)
+        {
+            outputType = output;
+            Authenticate(userName,password);
+        }
+
+        #endregion
 
         private static string GetMD5Hash(string input)
         {
@@ -94,16 +96,14 @@ namespace Monitis
             return password;
         }
 
-        #endregion
-
         #region GetApiKey
 
         public virtual string GetApiKey(string userName, string password, OutputType output)
         {
-            Dictionary<string, string> @params = new Dictionary<string, string>();
-            @params.Add(Params.userName, userName);
-            @params.Add(Params.password, GetMD5Hash(password));
-            var response = MakeGetRequest(AuthenticationAction.apikey, output, @params);
+            Dictionary<string, string> parameters = new Dictionary<string, string>();
+            parameters.Add(Params.userName, userName);
+            parameters.Add(Params.password, GetMD5Hash(password));
+            var response = MakeGetRequest(AuthenticationAction.apikey, output, parameters);
             return H.GetValueOfKey(response, AuthenticationAction.apikey, output);
         }
 
@@ -133,10 +133,10 @@ namespace Monitis
 
         public virtual string GetAuthToken(string apikey, string secretkey, OutputType output)
         {
-            Dictionary<string, string> @params = new Dictionary<string, string>();
-            @params.Add(Params.apikey, apikey);
-            @params.Add(Params.secretkey, secretkey);
-            var response = MakeGetRequest(AuthenticationAction.authToken, output, @params);
+            Dictionary<string, string> parameters = new Dictionary<string, string>();
+            parameters.Add(Params.apikey, apikey);
+            parameters.Add(Params.secretkey, secretkey);
+            var response = MakeGetRequest(AuthenticationAction.authToken, output, parameters);
             return H.GetValueOfKey(response, AuthenticationAction.authToken, output);
         }
 

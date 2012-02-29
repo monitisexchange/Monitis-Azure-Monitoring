@@ -18,5 +18,9 @@ namespace Monitis
         public static readonly string password = "password";
         public static readonly string secretkey = "secretkey";
         public static readonly string validation = "validation";
+        /// <summary>
+        /// "error" responces from server - for detecting errors
+        /// </summary>
+        public static readonly string error = "error";
     }
 }

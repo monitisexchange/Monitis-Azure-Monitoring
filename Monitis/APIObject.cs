@@ -14,17 +14,13 @@ namespace Monitis
         public string apiUrl = "";
         public string authToken = "";
 
-        public enum Validation
-        {
-            HMACSHA1,
-            token
-        }
+        protected OutputType outputType = OutputType.JSON;
 
         /// <summary>
         /// Validation type for POST requests 
         /// Default value is HMACSHA1
         /// </summary>
-        public Validation CurrentValidation = Validation.HMACSHA1;
+        public Validation ValidationCurrent = Validation.HMACSHA1;
 
         /// <summary>
         /// Default apiUrl is http://monitis.com/api
@@ -41,30 +37,37 @@ namespace Monitis
             this.apiUrl = apiUrl;
         }
 
-
-        public virtual RestResponse MakePostRequest(Enum action, Dictionary<string, string> parameters,
-                                                    Validation validation)
+        /// <summary>
+        /// Post request with specified params
+        /// </summary>
+        /// <param name="action">Action for post request</param>
+        /// <param name="output">Type of output from server</param>
+        /// <param name="parameters">Params for post request</param>
+        /// <param name="validation">Type of request's validation on server</param>
+        /// <returns>Responce from server</returns>
+        public virtual RestResponse MakePostRequest(Enum action,OutputType output, Dictionary<string, string> parameters, Validation validation)                                        
         {
             DateTime curTime = H.DateTimeNowUtc;
             string formattedTime = curTime.ToString("yyyy-MM-dd HH:mm:ss");
 
-            var reqParams = new Dictionary<string, string>();
-            reqParams.Add(Params.action, action.ToString());
-            reqParams.Add(Params.apikey, apiKey);
-            reqParams.Add(Params.timestamp, formattedTime);
-            reqParams.Add(Params.version, H.ApiVersion);
-            reqParams.Add(Params.validation, validation.ToString());
+            var requestParams = new Dictionary<string, string>();
+            requestParams.Add(Params.action, action.ToString());
+            requestParams.Add(Params.apikey, apiKey);
+            requestParams.Add(Params.timestamp, formattedTime);
+            requestParams.Add(Params.version, H.ApiVersion);
+            requestParams.Add(Params.validation, validation.ToString());
+            requestParams.Add(Params.output, output.ToString());
             if (parameters != null)
-                PutAll(reqParams, parameters);
+                PutAll(requestParams, parameters);
 
             //Order for put request
-            reqParams = reqParams.OrderBy(r => r.Key).ToDictionary(r => r.Key, r => r.Value);
+            requestParams = requestParams.OrderBy(r => r.Key).ToDictionary(r => r.Key, r => r.Value);
 
-            var paramValueStr = new StringBuilder();
-            foreach (var reqParam in reqParams)
+            var paramValueString = new StringBuilder();
+            foreach (var reqParam in requestParams)
             {
-                paramValueStr.Append(reqParam.Key);
-                paramValueStr.Append(reqParam.Value);
+                paramValueString.Append(reqParam.Key);
+                paramValueString.Append(reqParam.Value);
             }
 
             if (Validation.HMACSHA1 == validation)
@@ -74,8 +77,8 @@ namespace Monitis
                 {
                     throw new Exceptions.SecretKeyIsNullOrEmptyException();
                 }
-                string checkSum = CalculateRFC2104HMAC(paramValueStr.ToString(), secretKey);
-                reqParams.Add(Params.checksum, checkSum);
+                string checkSum = CalculateRFC2104HMAC(paramValueString.ToString(), secretKey);
+                requestParams.Add(Params.checksum, checkSum);
             }
             else if (Validation.token == validation)
             {
@@ -83,12 +86,12 @@ namespace Monitis
                 {
                     throw new Exceptions.AuthTokenisNullOrEmptyException();
                 }
-                reqParams.Add(Params.authToken, authToken);
+                requestParams.Add(Params.authToken, authToken);
             }
 
             var restClient = new RestClient(apiUrl);
             var restRequest = new RestRequest(Method.POST);
-            foreach (var reqParam in reqParams)
+            foreach (var reqParam in requestParams)
             {
                 restRequest.AddParameter(reqParam.Key, reqParam.Value);
             }
@@ -97,9 +100,41 @@ namespace Monitis
             return responce;
         }
 
+        /// <summary>
+        ///  Post request with current output (JSON by default)
+        /// </summary>
+        /// <param name="action">Action for post request</param>
+        /// <param name="parameters">Params for post request</param>
+        /// <param name="validation">Type of request's validation on server</param>
+        /// <returns>Responce from server</returns>
+        public virtual RestResponse MakePostRequest(Enum action,  Dictionary<string, string> parameters, Validation validation)
+        {
+            ValidationCurrent = validation;
+            return MakePostRequest(action, parameters);
+        }
+
+        /// <summary>
+        /// Post request with current validation (HMACSHA1 by default) 
+        /// </summary>
+        /// <param name="action">Action for post request</param>
+        /// <param name="parameters">Params for post request</param>
+        /// <param name="output">Type of output from server</param>
+        /// <returns>Responce from server</returns>
+        public virtual RestResponse MakePostRequest(Enum action, Dictionary<string, string> parameters, OutputType output)
+        {
+            outputType = output;
+            return MakePostRequest(action, parameters);
+        }
+
+        /// <summary>
+        /// Post request with current validation (HMACSHA1 by default) and current output (JSON by default)
+        /// </summary>
+        /// <param name="action">Action for post request</param>
+        /// <param name="parameters">Params for post request</param>
+        /// <returns>Responce in XML or JSON format</returns>
         public virtual RestResponse MakePostRequest(Enum action, Dictionary<string, string> parameters)
         {
-            return MakePostRequest(action, parameters, CurrentValidation);
+            return MakePostRequest(action, outputType,parameters, ValidationCurrent);
         }
 
         private string CalculateRFC2104HMAC(string paramValueString, string secretKey)
@@ -113,20 +148,19 @@ namespace Monitis
             return result;
         }
 
-        public virtual RestResponse MakeGetRequest(Enum action, OutputType output = OutputType.JSON,
-                                                   Dictionary<string, string> @params = null)
+        public virtual RestResponse MakeGetRequest(Enum action, OutputType output, Dictionary<string, string> parameters = null)
         {
-            Dictionary<string, string> reqParams = new Dictionary<string, string>();
-            reqParams.Add(Params.action, action.ToString());
-            reqParams.Add(Params.apikey, apiKey);
-            reqParams.Add(Params.version, H.ApiVersion);
-            reqParams.Add(Params.output, output.ToString());
-            if (@params != null)
-                PutAll(reqParams, @params);
+            Dictionary<string, string> requestParams = new Dictionary<string, string>();
+            requestParams.Add(Params.action, action.ToString());
+            requestParams.Add(Params.apikey, apiKey);
+            requestParams.Add(Params.version, H.ApiVersion);
+            requestParams.Add(Params.output, output.ToString());
+            if (parameters != null)
+                PutAll(requestParams, parameters);
 
             var restClient = new RestClient(apiUrl);
             var restRequest = new RestRequest(Method.GET);
-            foreach (var reqParam in reqParams)
+            foreach (var reqParam in requestParams)
             {
                 restRequest.AddParameter(reqParam.Key, reqParam.Value);
             }
@@ -135,12 +169,9 @@ namespace Monitis
             return responce;
         }
 
-        public virtual RestResponse MakeGetRequest(string apiKey, Enum action,
-                                                   OutputType output = OutputType.JSON,
-                                                   Dictionary<string, string> @params = null)
+        public virtual RestResponse MakeGetRequest(Enum action, Dictionary<string, string> parameters = null)
         {
-            this.apiKey = apiKey;
-            return MakeGetRequest(action, output, @params);
+            return MakeGetRequest(action, outputType, parameters);
         }
 
         /// <summary>

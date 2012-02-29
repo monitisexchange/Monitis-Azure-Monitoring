@@ -16,6 +16,15 @@ namespace Monitis
     public enum OutputType { XML, JSON }
 
     /// <summary>
+    /// Type of server validation requests - HMACSHA1 or token
+    /// </summary>
+    public enum Validation
+    {
+        HMACSHA1,
+        token
+    }
+
+    /// <summary>
     /// Helper class
     /// </summary>
     public static class H
@@ -33,11 +42,6 @@ namespace Monitis
         /// </summary>
         public static string UrlApi = UrlServer + @"/api";
         public const string ApiVersion = "2";
-
-        /// <summary>
-        /// "error" - for detecting errors
-        /// </summary>
-        private const string errorResponce = "error";
 
         public static DateTime DateTimeNowUtc
         {
@@ -122,7 +126,7 @@ namespace Monitis
             {
                 string result = string.Empty;
                 var doc = XDocument.Parse(content);
-                var error = (GetElementWithName(doc.Elements(), errorResponce));
+                var error = (GetElementWithName(doc.Elements(), Params.error));
                 if (null!=error)
                     throw new Exception(error.Value);
                 result = GetElementWithName(doc.Elements(), key).Value;

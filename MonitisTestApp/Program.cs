@@ -14,7 +14,7 @@ namespace MonitisTestApp
 
         static void Main(string[] args)
         {
-            //AuthenticationTest("*");
+            AuthenticationTest("qwe1234`");
             PostTest();
         }
 
@@ -35,9 +35,9 @@ namespace MonitisTestApp
             parameters.Add("password", "password");
             parameters.Add("group", "group");
 
-            var res= apiObject.MakePostRequest(Actions.addSubAccount, parameters, APIObject.Validation.HMACSHA1);
+            var res= apiObject.MakePostRequest(Actions.addSubAccount, parameters, Validation.HMACSHA1);
             Console.WriteLine(res.Content);
-            res = apiObject.MakePostRequest(Actions.addSubAccount, parameters, APIObject.Validation.token);
+            res = apiObject.MakePostRequest(Actions.addSubAccount, parameters, Validation.token);
             Console.WriteLine(res.Content);
 
             Console.WriteLine("END!");
@@ -48,27 +48,19 @@ namespace MonitisTestApp
         {
             string userName = "stas.n.volkov@gmail.com";
             Authentication authentication = new Authentication();
+            authentication.Authenticate(userName,pass,OutputType.XML);
 
-            var responce = authentication.GetApiKey(userName, pass, OutputType.XML);
-            authentication.apiKey = responce;
-            Console.WriteLine(responce);
-            responce = authentication.GetApiKey(userName, pass, OutputType.JSON);
-            Console.WriteLine(responce);
+            Console.WriteLine(authentication.apiKey);
+            Console.WriteLine(authentication.secretKey);
+            Console.WriteLine(authentication.authToken);
+            Console.WriteLine(authentication.GetUserKey(userName,pass));
 
-            responce = authentication.GetUserKey(userName, pass, OutputType.XML);
-            Console.WriteLine(responce);
-            responce = authentication.GetUserKey(userName, pass, OutputType.JSON);
-            Console.WriteLine(responce);
+            authentication.Authenticate(userName, pass, OutputType.JSON);
 
-            responce = authentication.GetAuthToken(apiKey, sekretKey, OutputType.XML);
-            Console.WriteLine(responce);
-            responce = authentication.GetAuthToken(apiKey, sekretKey, OutputType.JSON);
-            Console.WriteLine(responce);
-
-            responce = authentication.GetSecretKey(OutputType.XML);
-            Console.WriteLine(responce);
-            responce = authentication.GetAuthToken(apiKey, sekretKey, OutputType.JSON);
-            Console.WriteLine(responce);
+            Console.WriteLine(authentication.apiKey);
+            Console.WriteLine(authentication.secretKey);
+            Console.WriteLine(authentication.authToken);
+            Console.WriteLine(authentication.GetUserKey(userName, pass));
 
             Console.WriteLine("END!");
             Console.ReadKey();
