@@ -9,7 +9,6 @@ namespace Monitis
 {
     public class Authentication : APIObject
     {
-
         public enum AuthenticationAction
         {
             apikey,
@@ -33,10 +32,10 @@ namespace Monitis
         /// </summary>
         /// <param name="userName">Name of user</param>
         /// <param name="password">Password of user</param>
-        /// <param name="output">Type of output. JSON is default</param>
-        public Authentication(string userName, string password, OutputType output = OutputType.JSON)
+        /// <param name="output">Type of output. If not selected, uses global params (JSON is default). Otherwise, set global param</param>
+        public Authentication(string userName, string password, OutputType? output=null)
         {
-            outputType = output;
+            OutputGlobal = GetOutput(output);
             Authenticate(userName, password);
         }
 
@@ -51,7 +50,7 @@ namespace Monitis
             this.apiKey = apiKey;
             if (string.IsNullOrEmpty(secretKey))
             {
-                this.secretKey = GetSecretKey(outputType);
+                this.secretKey = GetSecretKey(OutputGlobal);
             }
             else
             {
@@ -59,7 +58,7 @@ namespace Monitis
             }
             if (string.IsNullOrEmpty(authToken))
             {
-                this.authToken = GetAuthToken(apiKey, secretKey, outputType);
+                this.authToken = GetAuthToken(apiKey, secretKey, OutputGlobal);
             }
             else
             {
@@ -67,17 +66,18 @@ namespace Monitis
             }
         }
 
-        public void Authenticate(string userName, string password)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <param name="password"></param>
+        /// <param name="output">Set global output (or use exists - JSON by default)</param>
+        public void Authenticate(string userName, string password,OutputType? output=null)
         {
-            apiKey = GetApiKey(userName, password, outputType);
-            secretKey = GetSecretKey(outputType);
-            authToken = GetAuthToken(apiKey, secretKey, outputType);
-        }
-
-        public void Authenticate(string userName, string password, OutputType output)
-        {
-            outputType = output;
-            Authenticate(userName,password);
+            OutputGlobal = GetOutput(output);
+            apiKey = GetApiKey(userName, password, OutputGlobal);
+            secretKey = GetSecretKey(OutputGlobal);
+            authToken = GetAuthToken(apiKey, secretKey, OutputGlobal);
         }
 
         #endregion
@@ -96,73 +96,41 @@ namespace Monitis
             return password;
         }
 
-        #region GetApiKey
-
-        public virtual string GetApiKey(string userName, string password, OutputType output)
+        public virtual string GetApiKey(string userName, string password, OutputType? output=null)
         {
-            Dictionary<string, string> parameters = new Dictionary<string, string>();
+            OutputType outputType = GetOutput(output);
+            var parameters = new Dictionary<string, object>();
             parameters.Add(Params.userName, userName);
             parameters.Add(Params.password, GetMD5Hash(password));
-            var response = MakeGetRequest(AuthenticationAction.apikey, output, parameters);
-            return H.GetValueOfKey(response, AuthenticationAction.apikey, output);
+            var response = MakeGetRequest(AuthenticationAction.apikey, parameters, outputType);
+            return Helper.GetValueOfKey(response, AuthenticationAction.apikey, outputType);
         }
 
-        public virtual string GetApiKey(string userName, string password)
+        public virtual string GetSecretKey(OutputType? output=null)
         {
-            return GetApiKey(userName, password, outputType);
+            OutputType outputType = GetOutput(output);
+            var response = MakeGetRequest(AuthenticationAction.secretkey, output: outputType);
+            return Helper.GetValueOfKey(response, AuthenticationAction.secretkey, outputType);
         }
 
-        #endregion
-
-        #region GetSecretKey
-
-        public virtual string GetSecretKey(OutputType output)
+        public virtual string GetAuthToken(string apikey, string secretkey, OutputType? output=null)
         {
-            var response = MakeGetRequest(AuthenticationAction.secretkey, output);
-            return H.GetValueOfKey(response, AuthenticationAction.secretkey, output);
-        }
-
-        public virtual string GetSecretKey()
-        {
-            return GetSecretKey(outputType);
-        }
-
-        #endregion
-
-        #region GetAuthToken
-
-        public virtual string GetAuthToken(string apikey, string secretkey, OutputType output)
-        {
-            Dictionary<string, string> parameters = new Dictionary<string, string>();
+            OutputType outputType = GetOutput(output);
+            var parameters = new Dictionary<string, object>();
             parameters.Add(Params.apikey, apikey);
             parameters.Add(Params.secretkey, secretkey);
-            var response = MakeGetRequest(AuthenticationAction.authToken, output, parameters);
-            return H.GetValueOfKey(response, AuthenticationAction.authToken, output);
+            var response = MakeGetRequest(AuthenticationAction.authToken, parameters, outputType);
+            return Helper.GetValueOfKey(response, AuthenticationAction.authToken, outputType);
         }
 
-        public virtual string GetAuthToken(string apikey, string secretkey)
+        public virtual string GetUserKey(string userName, string password, OutputType? output=null)
         {
-            return GetAuthToken(apikey, secretkey, outputType);
-        }
-
-        #endregion
-
-        #region GetUserKey
-
-        public virtual string GetUserKey(string userName, string password, OutputType output)
-        {
-            Dictionary<string, string> parameters = new Dictionary<string, string>();
+            OutputType outputType = GetOutput(output);
+            var parameters = new Dictionary<string, object>();
             parameters.Add(Params.userName, userName);
             parameters.Add(Params.password, password);
-            var responce = MakeGetRequest(AuthenticationAction.userkey, output, parameters);
-            return H.GetValueOfKey(responce, AuthenticationAction.userkey, output);
+            var response = MakeGetRequest(AuthenticationAction.userkey, parameters, outputType);
+            return Helper.GetValueOfKey(response, AuthenticationAction.userkey, outputType);
         }
-
-        public virtual string GetUserKey(string userName, string password)
-        {
-            return GetUserKey(userName, password, outputType);
-        }
-
-        #endregion
     }
 }

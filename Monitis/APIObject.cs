@@ -14,20 +14,87 @@ namespace Monitis
         public string apiUrl = "";
         public string authToken = "";
 
-        protected OutputType outputType = OutputType.JSON;
+        #region Helper methods
 
         /// <summary>
-        /// Validation type for POST requests 
+        /// Set apiKey, secretKey and authToken
+        /// </summary>
+        /// <param name="authentication"></param>
+        public void SetAuthenticationParams(Authentication authentication)
+        {
+            apiKey = authentication.apiKey;
+            secretKey = authentication.secretKey;
+            authToken = authentication.authToken;
+        }
+
+        /// <summary>
+        /// Add key value pair to dictonary, if value is not null
+        /// </summary>
+        /// <param name="dictionary"></param>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        public static void AddIfNotNull(Dictionary<string, object> dictionary, string key, object value)
+        {
+            if (value!=null)
+            {
+                dictionary.Add(key,value);
+            }
+        }
+
+        public OutputType GetOutput(OutputType? currentOutput)
+        {
+            if (currentOutput.HasValue)
+                return currentOutput.Value;
+            else
+                return OutputGlobal;
+        }
+
+        public Validation GetValidation(Validation? validation)
+        {
+            if (validation.HasValue)
+                return validation.Value;
+            else
+                return ValidationGlobal;
+        }
+
+        private static string CalculateRFC2104HMAC(string paramValueString, string secretKey)
+        {
+            string result = string.Empty;
+            var myhmacsha1 = new HMACSHA1();
+            myhmacsha1.Key = Encoding.ASCII.GetBytes(secretKey);
+            byte[] sigBaseStrByteArr = Encoding.UTF8.GetBytes(paramValueString);
+            byte[] hashValue = myhmacsha1.ComputeHash(sigBaseStrByteArr);
+            result = Convert.ToBase64String(hashValue);
+            return result;
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Global outputType
+        /// Default value is JSON 
+        /// </summary>
+        public OutputType OutputGlobal = OutputType.JSON;
+
+        /// <summary>
+        /// Global validation type for POST requests 
         /// Default value is HMACSHA1
         /// </summary>
-        public Validation ValidationCurrent = Validation.HMACSHA1;
+        public Validation ValidationGlobal = Validation.HMACSHA1;
 
         /// <summary>
         /// Default apiUrl is http://monitis.com/api
         /// </summary>
         public APIObject()
         {
-            apiUrl = H.UrlApi;
+            apiUrl = Helper.UrlApi;
+        }
+
+        public APIObject(string apiKey, string secretKey)
+        {
+            this.apiKey = apiKey;
+            this.secretKey = secretKey;
+            apiUrl = Helper.UrlApi;
         }
 
         public APIObject(string apiKey, string secretKey, string apiUrl)
@@ -44,19 +111,25 @@ namespace Monitis
         /// <param name="output">Type of output from server</param>
         /// <param name="parameters">Params for post request</param>
         /// <param name="validation">Type of request's validation on server</param>
-        /// <returns>Responce from server</returns>
-        public virtual RestResponse MakePostRequest(Enum action,OutputType output, Dictionary<string, string> parameters, Validation validation)                                        
+        /// <returns>Response from server</returns>
+        public virtual RestResponse MakePostRequest(Enum action, 
+            Dictionary<string, object> parameters, OutputType? output=null,Validation? validation=null)                                        
         {
-            DateTime curTime = H.DateTimeNowUtc;
-            string formattedTime = curTime.ToString("yyyy-MM-dd HH:mm:ss");
+            OutputType outputType = GetOutput(output);
+            var requestParams = new Dictionary<string, object>();
+            requestParams.Add(Params.output, outputType);
 
-            var requestParams = new Dictionary<string, string>();
-            requestParams.Add(Params.action, action.ToString());
+            Validation validationCurrent = GetValidation(validation);
+            requestParams.Add(Params.validation, validationCurrent);
+
+            DateTime curTime = DateTime.UtcNow;
+            string formattedTime = curTime.ToString("yyyy-MM-dd HH:mm:ss");
+            requestParams.Add(Params.action, action);
             requestParams.Add(Params.apikey, apiKey);
             requestParams.Add(Params.timestamp, formattedTime);
-            requestParams.Add(Params.version, H.ApiVersion);
-            requestParams.Add(Params.validation, validation.ToString());
-            requestParams.Add(Params.output, output.ToString());
+            requestParams.Add(Params.version, Helper.ApiVersion);
+
+           
             if (parameters != null)
                 PutAll(requestParams, parameters);
 
@@ -70,7 +143,7 @@ namespace Monitis
                 paramValueString.Append(reqParam.Value);
             }
 
-            if (Validation.HMACSHA1 == validation)
+            if (Validation.HMACSHA1 == validationCurrent)
             {
                 //secretkey for checksum
                 if (string.IsNullOrEmpty(secretKey))
@@ -80,7 +153,7 @@ namespace Monitis
                 string checkSum = CalculateRFC2104HMAC(paramValueString.ToString(), secretKey);
                 requestParams.Add(Params.checksum, checkSum);
             }
-            else if (Validation.token == validation)
+            else if (Validation.token == validationCurrent)
             {
                 if (string.IsNullOrEmpty(authToken))
                 {
@@ -96,65 +169,21 @@ namespace Monitis
                 restRequest.AddParameter(reqParam.Key, reqParam.Value);
             }
 
-            RestResponse responce = restClient.Execute(restRequest);
-            return responce;
+            RestResponse response = restClient.Execute(restRequest);
+            return response;
         }
 
-        /// <summary>
-        ///  Post request with current output (JSON by default)
-        /// </summary>
-        /// <param name="action">Action for post request</param>
-        /// <param name="parameters">Params for post request</param>
-        /// <param name="validation">Type of request's validation on server</param>
-        /// <returns>Responce from server</returns>
-        public virtual RestResponse MakePostRequest(Enum action,  Dictionary<string, string> parameters, Validation validation)
+        public virtual RestResponse MakeGetRequest(Enum action,
+            Dictionary<string, object> parameters = null, OutputType? output=null)
         {
-            ValidationCurrent = validation;
-            return MakePostRequest(action, parameters);
-        }
+            OutputType outputType = GetOutput(output);
+            var requestParams = new Dictionary<string, object>();
+            requestParams.Add(Params.output, outputType);
 
-        /// <summary>
-        /// Post request with current validation (HMACSHA1 by default) 
-        /// </summary>
-        /// <param name="action">Action for post request</param>
-        /// <param name="parameters">Params for post request</param>
-        /// <param name="output">Type of output from server</param>
-        /// <returns>Responce from server</returns>
-        public virtual RestResponse MakePostRequest(Enum action, Dictionary<string, string> parameters, OutputType output)
-        {
-            outputType = output;
-            return MakePostRequest(action, parameters);
-        }
-
-        /// <summary>
-        /// Post request with current validation (HMACSHA1 by default) and current output (JSON by default)
-        /// </summary>
-        /// <param name="action">Action for post request</param>
-        /// <param name="parameters">Params for post request</param>
-        /// <returns>Responce in XML or JSON format</returns>
-        public virtual RestResponse MakePostRequest(Enum action, Dictionary<string, string> parameters)
-        {
-            return MakePostRequest(action, outputType,parameters, ValidationCurrent);
-        }
-
-        private string CalculateRFC2104HMAC(string paramValueString, string secretKey)
-        {
-            string result = string.Empty;
-            var myhmacsha1 = new HMACSHA1();
-            myhmacsha1.Key = Encoding.ASCII.GetBytes(secretKey);
-            byte[] sigBaseStrByteArr = Encoding.UTF8.GetBytes(paramValueString);
-            byte[] hashValue = myhmacsha1.ComputeHash(sigBaseStrByteArr);
-            result = Convert.ToBase64String(hashValue);
-            return result;
-        }
-
-        public virtual RestResponse MakeGetRequest(Enum action, OutputType output, Dictionary<string, string> parameters = null)
-        {
-            Dictionary<string, string> requestParams = new Dictionary<string, string>();
-            requestParams.Add(Params.action, action.ToString());
+            requestParams.Add(Params.action, action);
             requestParams.Add(Params.apikey, apiKey);
-            requestParams.Add(Params.version, H.ApiVersion);
-            requestParams.Add(Params.output, output.ToString());
+            requestParams.Add(Params.version, Helper.ApiVersion);
+            
             if (parameters != null)
                 PutAll(requestParams, parameters);
 
@@ -165,13 +194,8 @@ namespace Monitis
                 restRequest.AddParameter(reqParam.Key, reqParam.Value);
             }
 
-            RestResponse responce = restClient.Execute(restRequest);
-            return responce;
-        }
-
-        public virtual RestResponse MakeGetRequest(Enum action, Dictionary<string, string> parameters = null)
-        {
-            return MakeGetRequest(action, outputType, parameters);
+            RestResponse response = restClient.Execute(restRequest);
+            return response;
         }
 
         /// <summary>
@@ -179,9 +203,9 @@ namespace Monitis
         /// </summary>
         /// <param name="dictionary1"></param>
         /// <param name="dictionary2"></param>
-        private static void PutAll(Dictionary<string, string> dictionary1, Dictionary<string, string> dictionary2)
+        private static void PutAll(Dictionary<string, object> dictionary1, Dictionary<string, object> dictionary2)
         {
-            foreach (KeyValuePair<string, string> keyValuePair in dictionary2)
+            foreach (KeyValuePair<string, object> keyValuePair in dictionary2)
             {
                 if (dictionary1.ContainsKey(keyValuePair.Key))
                 {
