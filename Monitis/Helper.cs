@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Xml;
+using System.Runtime.Serialization;
 using System.Xml.Linq;
+using System.Xml.Serialization;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
@@ -27,7 +27,7 @@ namespace Monitis
     /// <summary>
     /// Helper class
     /// </summary>
-    public static class H
+    internal static class Helper
     {
         /// <summary>
         /// http://monitis.com by default
@@ -36,20 +36,19 @@ namespace Monitis
         /// <summary>
         /// http://monitis.com/customMonitorApi by default
         /// </summary>
-        public static string UrlCustomMonitorApi = UrlServer + @"/customMonitorApi";
+        public static readonly string UrlCustomMonitorApi = UrlServer + @"/customMonitorApi";
         /// <summary>
         /// http://monitis.com/api by default
         /// </summary>
-        public static string UrlApi = UrlServer + @"/api";
-        public const string ApiVersion = "2";
-
-        public static DateTime DateTimeNowUtc
-        {
-            get
-            {
-                return TimeZoneInfo.ConvertTimeToUtc(DateTime.Now);
-            }
-        }
+        public static readonly string UrlApi = UrlServer + @"/api";
+        /// <summary>
+        /// Current version = 2
+        /// </summary>
+        public static readonly string ApiVersion = "2";
+        /// <summary>
+        /// ";" - separator
+        /// </summary>
+        public static readonly string DataSeparator = ";";
 
         /// <summary>
         /// Gets value of key from json or xml string
@@ -72,10 +71,29 @@ namespace Monitis
             return value;
         }
 
+        public static T DeserializeObject<T>(string content, OutputType outputType, string xmlRoot=null)
+        {
+            T result = default(T);
+            if (OutputType.JSON == outputType)
+            {
+                result = Json.DeserializeObject<T>(content);
+            }
+            else if (OutputType.XML == outputType)
+            {
+                result = Xml.DeserializeObject<T>(content,xmlRoot);
+            }
+            return result;
+        }
+
+        public static T DeserializeObject<T>(RestResponse response, OutputType outputType, string xmlRoot=null)
+        {
+            return DeserializeObject<T>(response.Content, outputType, xmlRoot);
+        }
+
         /// <summary>
         /// Gets value of key from json or xml string
         /// </summary>
-        /// <param name="response">Responce of REST service</param>
+        /// <param name="response">Response of REST service</param>
         /// <param name="key">Finds value of this key</param>
         /// <param name="outputType">XML of JSON</param>
         /// <returns>Value of key</returns>
@@ -87,7 +105,7 @@ namespace Monitis
         /// <summary>
         /// Gets value of key from json or xml string
         /// </summary>
-        /// <param name="response">Responce of REST service</param>
+        /// <param name="response">Response of REST service</param>
         /// <param name="key">Finds value of this key</param>
         /// <param name="outputType">XML of JSON</param>
         /// <returns>Value of key</returns>
@@ -101,6 +119,17 @@ namespace Monitis
         /// </summary>
         public static class Json
         {
+            public static T DeserializeObject<T>(string content)
+            {
+                return JsonConvert.DeserializeObject<T>(content);
+            }
+
+            public static T DeserializeObject<T>(RestResponse response)
+            {
+                return DeserializeObject<T>(response.Content);
+            }
+
+            #region GetValueOfKey
             public static string GetValueOfKey (string content, string key)
             {
                return JObject.Parse(content)[key].ToString();
@@ -115,6 +144,7 @@ namespace Monitis
             {
                 return GetValueOfKey(response.Content, key.ToString()); ;
             }
+            #endregion
         }
 
         /// <summary>
@@ -122,6 +152,21 @@ namespace Monitis
         /// </summary>
         public static class Xml
         {
+            public static T DeserializeObject<T>(string content, string xmlRoot)
+            {
+                XmlSerializer xmlSerializer;
+                if (xmlRoot != null)
+                    xmlSerializer = new XmlSerializer(typeof(T),new XmlRootAttribute(xmlRoot));
+                else
+                    xmlSerializer = new XmlSerializer(typeof (T));
+                return (T) xmlSerializer.Deserialize(new StringReader(content));
+            }
+
+            public static T DeserializeObject<T>(RestResponse response, string xmlRoot)
+            {
+                return DeserializeObject<T>(response.Content, xmlRoot);
+            }
+
             public static string GetValueOfKey(string content, string key)
             {
                 string result = string.Empty;

@@ -19,7 +19,7 @@ namespace Monitis
 
         public class AuthTokenisNullOrEmptyException : Exception
         {
-            public override string Message { get { return " AuthToken is null or empty!"; } }
+            public override string Message { get { return "AuthToken is null or empty!"; } }
         }
     }
 }
