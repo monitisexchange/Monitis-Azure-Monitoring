@@ -11,15 +11,15 @@ namespace MonitisTestApp
 {
     class Program
     {
-        private static string apiKey = "72VR17E1R8NVUL0DR0D2O4TF49";
-        private static string sekretKey = "275SP14E12PLO0RRB12QF301CT ";
-        private static string userName = "qwejake@mailforspam.com";
-        private static string pass = "qwe1234`";
+        private static string apiKey = "3HQB2PHSMHCRRHV5M9FR8MTBC";
+        private static string sekretKey = "1H4AMF6FEO72IEVH8FD5B4US61 ";
+        private static string userName = "monitis_test@adoriasoft.com";
+        private static string pass = "SuperPassword!";
 
         static void Main(string[] args)
         {
-            //AuthenticationTest();
-            //PostTest();
+            AuthenticationTest();
+            PostTest();
             ContactTest();
 
             //Monitis.Structures.Contact[] contacts = new Monitis.Structures.Contact[]
