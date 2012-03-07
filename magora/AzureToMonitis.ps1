@@ -16,31 +16,33 @@ function ToArray
 }
 
 #Monitis API key
-$apikey = "1J2GOD370620P229PP346FM6U1"
+$apikey = "[your API Key]"
 
 #Monitis Secret key
-$apisecretkey = "38H92D44TDFGFDREU9ENQMPJJL"
+$apisecretkey = "[your API Secret Key]"
 
 #Name of custom monitor
-$monitorName = "newazure2"
+$monitorName = "[name of custom monitor]"
 
 #storage for performance counters data
-$storageAccountName = "perfdata"
+$storageAccountName = "[name of storage]"
 
 #key to storage
-$storageAccountKey = "zbcl9Na/BLk9TeIwlH8Ygdkc2AzlkSXcCTBy/gLmQ+pbh8hCoSzHXhmP3MTVWDR/77CBt+5cA4GHB5I0zdTI6Q=="
+$storageAccountKey = "[storage access key]"
 
 # deployment slot for the azure role
-$deploymentSlot = "Staging"
+$deploymentSlot = "[deployment slot]"
 
 # name of the role to load performance counters data
-$serviceName = "testservice1326"
+$serviceName = "[DNS prefix of role]"
 
 # start time (in hours) from current time
-$startHours = -72
+# the value should be negative
+$startHours = [relative start time to download data]
 
 # end time (in hours) from current time
-$endHours = 0;
+# the vlaue should be negative or equal to zero
+$endHours = [relative end time to download data]
 
 # Add Azure Snap-in
 if ((Get-PSSnapin | ?{ $_.Name -eq "WAPPSCmdlets" }) -eq $null)
@@ -49,10 +51,10 @@ if ((Get-PSSnapin | ?{ $_.Name -eq "WAPPSCmdlets" }) -eq $null)
 }
 
 #Import Monitis module
-Import-Module c:\Users\kokorin.MAGORA\Downloads\monitis\Module\Monitis.psm1
+Import-Module [Add full path to monitis module]
 
 #publish settings for azure account
-$subscript = Import-Subscription -PublishSettingsFile "c:\Users\kokorin.magora\downloads\MyTestCredentials.publishsettings"
+$subscript = Import-Subscription -PublishSettingsFile "[Add full path to publish settings of your azure account]"
 
 # available monitis types
 $intType = [System.Type]::GetType("System.Int32")
