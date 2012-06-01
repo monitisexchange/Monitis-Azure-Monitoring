@@ -1,7 +1,6 @@
 ﻿Import-Module WebAdministration
-Import-Module [Add full path to monitis module]
+Import-Module "[Add path to monitis module]"
 
-# converts collection to array
 function ToArray
 {
   begin
@@ -17,17 +16,14 @@ function ToArray
     return ,$output; 
   }
 }
-# Monitis Secret key
-$apikey = "[your API key]"
-#Monitis Secret API key
-$apisecretkey = "[your API secret key]"
 
-# Types supported by monitis
+$apikey = "[your API key]"
+$apisecretkey = "[your secret API key]"
+
 $intType = [System.Type]::GetType("System.Int32")
 $floatType = [System.Type]::GetType("System.Single")
 $stringType = [System.Type]::GetType("System.String")
 
-# IIS properties to monitoring
 $properties = @(
 	@{
 		Property = "Name"
@@ -78,22 +74,199 @@ $properties = @(
 		Property = "TotalNotFoundErrors"
 		Type = $intType
 		Name = "Total 'Not Found' Errors on site"
+	},
+	@{
+		Property = "AnonymousUsersPersec"
+		Type = $intType
+		Name = "Anonymous Users Per second"
+	},
+	@{
+		Property = "BytesReceivedPersec"
+		Type = $intType
+		Name = "Bytes Received Per second"
+	},
+	@{
+		Property = "BytesSentPersec"
+		Type = $intType
+		Name = "Bytes Sent Per second"
+	},
+	@{
+		Property = "BytesTotalPersec"
+		Type = $intType
+		Name = "Total Bytes Per second"
+	},
+	@{
+		Property = "FilesReceivedPersec"
+		Type = $intType
+		Name = "Bytes Received Per second"
+	},
+	@{
+		Property = "FilesSentPersec"
+		Type = $intType
+		Name = "Bytes Sent Per second"
+	},
+	@{
+		Property = "FilesPersec"
+		Type = $intType
+		Name = "Total Bytes Per second"
+	},
+	@{
+		Property = "TotalFilesReceived"
+		Type = $intType
+		Name = "Bytes Received Per second"
+	},
+	@{
+		Property = "TotalFilesSent"
+		Type = $intType
+		Name = "Bytes Sent Per second"
+	},
+	@{
+		Property = "TotalFilesTransferred"
+		Type = $intType
+		Name = "Total Bytes Per second"
+	},
+	@{
+		Property = "CGIRequestsPersec"
+		Type = $intType
+		Name = "Bytes Received Per second"
+	},
+	@{
+		Property = "CurrentCGIRequests"
+		Type = $intType
+		Name = "Current CGI Requests"
+	},
+	@{
+		Property = "ConnectionAttemtpsPersec"
+		Type = $intType
+		Name = "Connection Attemtps Per second"
+	},
+	@{
+		Property = "HeadRequestsPersec"
+		Type = $intType
+		Name = "Head Requests Persec"
+	},
+	@{
+		Property = "LockRequestsPersec"
+		Type = $intType
+		Name = "Lock Requests Persec"
+	},
+	@{
+		Property = "LogonRequestsPersec"
+		Type = $intType
+		Name = "Logon Requests Persec"
+	},
+	@{
+		Property = "DeleteRequestsPersec"
+		Type = $intType
+		Name = "Delete Requests Persec"
+	},
+	@{
+		Property = "MkcolRequestsPersec"
+		Type = $intType
+		Name = "Mkcol Requests Persec"
+	},
+	@{
+		Property = "MoveRequestsPersec"
+		Type = $intType
+		Name = "Move Requests Persec"
+	},
+	@{
+		Property = "OptionsRequestsPersec"
+		Type = $intType
+		Name = "Options Requests Persec"
+	},
+	@{
+		Property = "PostRequestsPersec"
+		Type = $intType
+		Name = "Post Requests Persec"
+	},
+	@{
+		Property = "GetRequestsPersec"
+		Type = $intType
+		Name = "Get Requests Persec"
+	},
+	@{
+		Property = "PutRequestsPersec"
+		Type = $intType
+		Name = "Put Requests Persec"
+	},
+	@{
+		Property = "SearchRequestsPersec"
+		Type = $intType
+		Name = "Search Requests Persec"
+	},
+	@{
+		Property = "ServiceUptime"
+		Type = $intType
+		Name = "Service Uptime"
+	},
+	@{
+		Property = "CopyRequestsPersec"
+		Type = $intType
+		Name = "Copy Requests Persec"
+	},
+	@{
+		Property = "TotalCGIRequests"
+		Type = $intType
+		Name = "Total CGI Requests"
+	},
+	@{
+		Property = "TotalCopyRequests"
+		Type = $intType
+		Name = "Total Copy Requests"
+	},
+	@{
+		Property = "TotalDeleteRequests"
+		Type = $intType
+		Name = "Total Delete Requests"
+	},
+	@{
+		Property = "TotalHeadRequests"
+		Type = $intType
+		Name = "Total Head Requests"
+	},
+	@{
+		Property = "TotalLockRequests"
+		Type = $intType
+		Name = "Total Lock Requests"
+	},
+	@{
+		Property = "TotalLogonAttempts"
+		Type = $intType
+		Name = "Total Logon Attempts"
+	},
+	@{
+		Property = "TotalMkcolRequests"
+		Type = $intType
+		Name = "Total Mkcol Requests"
+	},
+	@{
+		Property = "TotalMoveRequests"
+		Type = $intType
+		Name = "Total Move Requests"
+	},
+	@{
+		Property = "TotalOptionsRequests"
+		Type = $intType
+		Name = "Total Options Requests"
+	},
+	@{
+		Property = "TotalPutRequests"
+		Type = $intType
+		Name = "Total Put Requests"
 	}
 )
 
-# Getting properties names
 $propNames = @()
 foreach($prop in $properties)
 {
 	$propNames += $prop["Property"]
 }
 
-# Getting values of specified properties for each site on IIS including _Total
 $wsParams = Get-WmiObject -Namespace root\CIMV2 -Class Win32_PerfFormattedData_W3SVC_WebService -ComputerName . | Select -Property $propNames
 
 Connect-Monitis -ApiKey $apikey -SecretKey $apisecretkey
 
-# Creating monitor for each site and uploading data
 foreach($entry in $wsParams)
 {
 	$monitorName = $entry.Name
